@@ -389,3 +389,6 @@ FodyWeavers.xsd
 
 # Macos
 .DS_STORE
+
+# custom lazer data folder
+data/

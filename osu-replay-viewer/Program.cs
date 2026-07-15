@@ -44,6 +44,7 @@ namespace osu_replay_renderer_netcore
             OptionDescription beatmapImport;
             OptionDescription extendedImportInfo;
             OptionDescription preserveImportedFiles;
+            OptionDescription dataPath;
 
             CommandLineProcessor cli = new()
             {
@@ -183,6 +184,14 @@ namespace osu_replay_renderer_netcore
                         DoubleDashes = new[] { "preserve" },
                         SingleDash = new[] { "pr" }
                     },
+                    dataPath = new()
+                    {
+                        Name = "Data path",
+                        Description = "Custom data folder path for osu!lazer storage (default: ~/.local/share/osu_replay_viewer on Linux or AppData on Windows)",
+                        DoubleDashes = new[] { "data-path" },
+                        SingleDash = new[] { "data-path", "dp" },
+                        Parameters = new[] { "/path/to/data" }
+                    },
                 }
             };
 
@@ -294,11 +303,18 @@ namespace osu_replay_renderer_netcore
                         };
                     }
 
-                    host = new ReplayRecordGameHost(gameName, encoder, recordClock, orvConfig.RecordOptions.Renderer, patched, orvConfig.GameSettings);
+                    host = new ReplayRecordGameHost(gameName, encoder, recordClock, orvConfig.RecordOptions.Renderer, patched, orvConfig.GameSettings, dataPath.Triggered ? dataPath[0] : null);
                 }
                 else
                 {
-                    host = Host.GetSuitableDesktopHost(gameName);
+                    if (dataPath.Triggered)
+                    {
+                        host = new CustomDataPathGameHost(gameName, dataPath[0]);
+                    }
+                    else
+                    {
+                        host = Host.GetSuitableDesktopHost(gameName);
+                    }
                 }
 
                 game = new OsuGameRecorder(orvConfig.GameSettings);

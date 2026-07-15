@@ -35,7 +35,18 @@ namespace osu_replay_renderer_netcore.CustomHosts
 
     public class ReplayRecordGameHost : DesktopGameHost
     {
-        public override IEnumerable<string> UserStoragePaths => CrossPlatform.GetUserStoragePaths();
+        private readonly string customDataPath;
+
+        public override IEnumerable<string> UserStoragePaths
+        {
+            get
+            {
+                if (!string.IsNullOrEmpty(customDataPath))
+                    return new[] { customDataPath };
+
+                return CrossPlatform.GetUserStoragePaths();
+            }
+        }
 
         public override bool OpenFileExternally(string filename)
         {
@@ -67,7 +78,7 @@ namespace osu_replay_renderer_netcore.CustomHosts
         private readonly GlRenderer rendererType;
         private RenderWrapper wrapper;
 
-        public ReplayRecordGameHost(string gameName, EncoderBase encoder, RecordClock recordClock, GlRenderer rendererType, bool patchesApplied, GameSettings settings) : base(gameName)
+        public ReplayRecordGameHost(string gameName, EncoderBase encoder, RecordClock recordClock, GlRenderer rendererType, bool patchesApplied, GameSettings settings, string customDataPath = null) : base(gameName)
         {
             this.encoder = encoder;
             isFinishFramePatched = patchesApplied;
@@ -75,6 +86,7 @@ namespace osu_replay_renderer_netcore.CustomHosts
             
             this.recordClock = recordClock;
             this.rendererType = rendererType;
+            this.customDataPath = customDataPath;
 
             if (isFinishFramePatched)
             {
