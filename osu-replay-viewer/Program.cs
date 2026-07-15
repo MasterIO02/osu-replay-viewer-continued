@@ -20,7 +20,7 @@ namespace osu_replay_renderer_netcore
     {
         const string GAME_NAME = "osu_replay_viewer";
         const string OSU_GAME_NAME = "osu";
-        
+
         static void Main(string[] args)
         {
             // Command tree
@@ -29,7 +29,7 @@ namespace osu_replay_renderer_netcore
             OptionDescription query;
             OptionDescription osuGameName;
             OptionDescription orvConfigPath;
-            
+
             OptionDescription generalHelp;
             OptionDescription generalList;
             OptionDescription generalView;
@@ -44,7 +44,7 @@ namespace osu_replay_renderer_netcore
             OptionDescription beatmapImport;
             OptionDescription extendedImportInfo;
             OptionDescription preserveImportedFiles;
-            
+
             CommandLineProcessor cli = new()
             {
                 Options = new[]
@@ -190,7 +190,7 @@ namespace osu_replay_renderer_netcore
             var patched = false;
             // Apply patches
             if (ShouldApplyPatch(args))
-            { 
+            {
                 new AudioPatcher().DoPatching();
                 new ClockPatcher().DoPatching();
                 new RenderPatcher().DoPatching();
@@ -200,7 +200,7 @@ namespace osu_replay_renderer_netcore
 
             var modsOverride = new List<string>();
             var experimentalFlags = new List<string>();
-            
+
             modOverride.OnOptions += (args) => { modsOverride.Add(args[0]); };
             experimental.OnOptions += (args) => { experimentalFlags.Add(args[0]); };
             GameHost host;
@@ -218,7 +218,7 @@ namespace osu_replay_renderer_netcore
                     cli.PrintHelp(generalHelp.Triggered, query.Triggered ? query[0] : null);
                     return;
                 }
-                
+
                 var orvConfig = Config.ReadFromFile(orvConfigPath[0]);
 
                 var gameName = GAME_NAME;
@@ -231,7 +231,7 @@ namespace osu_replay_renderer_netcore
                 if (recordMode.Triggered)
                 {
                     if (!CLIUtils.AskFileDelete(alwaysYes.Triggered, recordOutput[0])) return;
-                    
+
                     var recordClock = new RecordClock(orvConfig.RecordOptions.FrameRate);
                     if (patched)
                     {
@@ -264,7 +264,7 @@ namespace osu_replay_renderer_netcore
                     };
 
                     Console.WriteLine($"[Encoder] Pixel format: {config.PixelFormat}, Color space: {config.ColorSpace}");
-                    
+
                     FFmpegAudioTools.FFmpegExec = orvConfig.FFmpegOptions.Executable;
 
                     if (!string.IsNullOrWhiteSpace(orvConfig.FFmpegOptions.LibrariesPath))
@@ -300,7 +300,7 @@ namespace osu_replay_renderer_netcore
                 {
                     host = Host.GetSuitableDesktopHost(gameName);
                 }
-                
+
                 game = new OsuGameRecorder(orvConfig.GameSettings);
                 game.ModsOverride = modsOverride;
                 game.ExperimentalFlags = experimentalFlags;
@@ -317,7 +317,7 @@ namespace osu_replay_renderer_netcore
                 {
                     game.BeatmapPath = beatmapImport[0];
                 }
-                
+
                 if (generalList.Triggered)
                 {
                     game.ListReplays = true;
@@ -327,16 +327,18 @@ namespace osu_replay_renderer_netcore
                 {
                     game.SkinActionType = SkinAction.List;
                 }
-                else if (!generalView.Triggered) throw new CLIException
+                else if (!generalView.Triggered && !beatmapImport.Triggered) throw new CLIException
                 {
                     Cause = "General Problem",
-                    DisplayMessage = "--view must be present (except for --list and --list-skins)",
+                    DisplayMessage = "--view must be present (except for --list, --list-skins, and --import-beatmap)",
                     Suggestions = new[] {
-                        "Add --list <Type> <ID/Path> to your command",
-                        "Add --list-skins to your command"
+                        "Add --view <Type> <ID/Path> to your command",
+                        "Add --list to your command",
+                        "Add --list-skins to your command",
+                        "Add --import-beatmap <path> to your command"
                     }
                 };
-                else
+                else if (generalView.Triggered)
                 {
                     string path = generalView[1];
                     bool isValidInteger = long.TryParse(generalView[1], out long id);
@@ -406,7 +408,8 @@ namespace osu_replay_renderer_netcore
 
                 game.SkipIntro = orvConfig.GameSettings.SkipIntro;
 
-            } catch (CLIException cliException)
+            }
+            catch (CLIException cliException)
             {
                 Console.WriteLine("Error while processing CLI arguments:");
                 Console.WriteLine($"  Cause:      {cliException.Cause}");
@@ -428,7 +431,8 @@ namespace osu_replay_renderer_netcore
         static bool ParseBoolOrThrow(string str)
         {
             str = str.ToLower();
-            return str switch {
+            return str switch
+            {
                 "true" or "yes" or "1" => true,
                 "false" or "no" or "0" => false,
                 _ => throw new CLIException
@@ -464,7 +468,7 @@ namespace osu_replay_renderer_netcore
 
             if (!config.FFmpegOptions.UseCudaIfPossible)
                 return false;
-            
+
             if (!NvidiaGpuFFmpegEncoder.IsSupportedConfig(encoderConfig))
                 return false;
 

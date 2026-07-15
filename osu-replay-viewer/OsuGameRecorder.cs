@@ -59,7 +59,7 @@ namespace osu_replay_renderer_netcore
 
         public bool PreserveImportedFiles { get; set; } = true;
         public bool ExtendedImportInfo { get; set; } = false;
-        
+
         public bool HideOverlaysInPlayer = false;
         public bool SkipIntro = false;
 
@@ -74,7 +74,7 @@ namespace osu_replay_renderer_netcore
         }
 
         private string TempFolder = Path.GetTempPath();
-        
+
         public Live<SkinInfo> ImportSkin(string skinPath)
         {
             if (!File.Exists(skinPath))
@@ -122,7 +122,7 @@ namespace osu_replay_renderer_netcore
                     Console.WriteLine($"IMPORTED_SKIN_ID::{skin.Value.ID}");
                     Console.WriteLine($"IMPORTED_SKIN_NAME::{skin.Value.Name}");
                 }
-                
+
                 return skin;
             }
             catch (Exception e)
@@ -137,7 +137,7 @@ namespace osu_replay_renderer_netcore
                     File.Delete(toImport);
                 }
             }
-            
+
             Exit();
             return null;
         }
@@ -176,7 +176,7 @@ namespace osu_replay_renderer_netcore
                     Exit();
                     return null;
                 }
-                
+
                 toImport = tmpFile;
             }
 
@@ -208,11 +208,11 @@ namespace osu_replay_renderer_netcore
                     File.Delete(toImport);
                 }
             }
-            
+
             Exit();
             return null;
         }
-        
+
         public void SelectSkin(Live<SkinInfo> skin)
         {
             Console.WriteLine($"Selected skin: {skin.Value.Name}");
@@ -237,7 +237,7 @@ namespace osu_replay_renderer_netcore
                 Console.WriteLine();
 
                 // Hacky way to get realm access
-                RealmAccess realm = (RealmAccess) typeof(ScoreManager).GetProperty("Realm", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(ScoreManager);
+                RealmAccess realm = (RealmAccess)typeof(ScoreManager).GetProperty("Realm", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(ScoreManager);
 
                 foreach (ScoreInfo info in realm.Run(r => r.All<ScoreInfo>().Detach()))
                 {
@@ -281,7 +281,7 @@ namespace osu_replay_renderer_netcore
                 Console.WriteLine("--------------------");
                 Console.WriteLine("Listing all available skins:");
 
-                RealmAccess realm = (RealmAccess) typeof(SkinManager).GetProperty("Realm", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(SkinManager);
+                RealmAccess realm = (RealmAccess)typeof(SkinManager).GetProperty("Realm", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(SkinManager);
 
                 foreach (SkinInfo info in realm.Run(r => r.All<SkinInfo>().Detach()))
                 {
@@ -297,8 +297,13 @@ namespace osu_replay_renderer_netcore
             if (!string.IsNullOrWhiteSpace(BeatmapPath))
             {
                 ImportBeatmapSet(BeatmapPath);
+                if (string.IsNullOrWhiteSpace(ReplayViewType))
+                {
+                    Exit();
+                    return;
+                }
             }
-            
+
             Score score;
             ScoreInfo scoreInfo = null;
             switch (ReplayViewType)
@@ -397,7 +402,7 @@ namespace osu_replay_renderer_netcore
 
         private void LoadViewer(Score score)
         {
-            var sw = new Stopwatch();            
+            var sw = new Stopwatch();
             // Apply some stuffs
             config.SetValue(FrameworkSetting.ConfineMouseMode, ConfineMouseMode.Never);
             if (Host is not ReplayRecordGameHost)
@@ -409,19 +414,19 @@ namespace osu_replay_renderer_netcore
                 config.SetValue(FrameworkSetting.FrameSync, FrameSync.Unlimited);
                 config.SetValue(FrameworkSetting.ExecutionMode, ExecutionMode.SingleThread);
             }
-            
+
             config.SetValue(FrameworkSetting.VolumeMusic, settings.VolumeMusic);
             config.SetValue(FrameworkSetting.VolumeEffect, settings.VolumeEffects);
             config.SetValue(FrameworkSetting.VolumeUniversal, settings.VolumeMaster);
-            
+
             LocalConfig.SetValue(OsuSetting.HitLighting, false);
-                
+
             Audio.Balance.Value = 0;
-            
+
             ScreenStack = new RecorderScreenStack();
             LoadComponent(ScreenStack);
             Add(ScreenStack);
-            
+
             var rulesetInfo = score.ScoreInfo.Ruleset;
             Ruleset.Value = rulesetInfo;
 
@@ -430,7 +435,7 @@ namespace osu_replay_renderer_netcore
             working.LoadTrack();
             Beatmap.Value = working;
             SelectedMods.Value = score.ScoreInfo.Mods;
-            
+
             if (!string.IsNullOrEmpty(Skin))
             {
                 Live<SkinInfo> skin;
@@ -481,11 +486,11 @@ namespace osu_replay_renderer_netcore
                     if (mod is ModDaycore or ModNightcore or ModDoubleTime { AdjustPitch.Value: true } or ModHalfTime { AdjustPitch.Value: true })
                     {
                         pitch = speed;
-                    } 
+                    }
                 }
                 var volumeMusic = config.Get<double>(FrameworkSetting.VolumeMusic);
                 var volumeUniversal = config.Get<double>(FrameworkSetting.VolumeUniversal);
-                
+
                 Console.WriteLine("Decoding audio...");
                 sw.Restart();
                 var track = FFmpegAudioTools.Decode(GetCurrentBeatmapAudioPath(), tempoFactor: speed, pitchFactor: pitch, volume: volumeMusic * volumeUniversal);
@@ -495,12 +500,12 @@ namespace osu_replay_renderer_netcore
             }
 
             Player = new RecorderReplayPlayer(score, HideOverlaysInPlayer, SkipIntro);
-            
+
             Player.OnFailed += () =>
             {
                 (Host as ReplayRecordGameHost)?.AudioEnded();
             };
-            
+
             Console.WriteLine("Loading player");
             sw.Restart();
             var loader = new RecorderReplayPlayerLoader(Player);
@@ -515,7 +520,7 @@ namespace osu_replay_renderer_netcore
             };
             ScreenStack.Push(loader);
             ScreenStack.ScreenPushed += ScreenStack_ScreenPushed;
-            
+
             //MenuCursorContainer.Cursor.RemoveAll(v => true, true);
 
             var configMgr = configCache.GetConfigFor(Ruleset.Value.CreateInstance());
@@ -526,7 +531,8 @@ namespace osu_replay_renderer_netcore
                 osuMgr.SetValue(OsuRulesetSetting.SnakingOutSliders, false);
                 osuMgr.SetValue(OsuRulesetSetting.ReplayFrameMarkersEnabled, false);
                 osuMgr.SetValue(OsuRulesetSetting.ReplayClickMarkersEnabled, false);
-            } else if (configMgr is ManiaRulesetConfigManager maniaMgr)
+            }
+            else if (configMgr is ManiaRulesetConfigManager maniaMgr)
             {
                 maniaMgr.SetValue(ManiaRulesetSetting.ScrollSpeed, 26d);
             }
@@ -552,7 +558,7 @@ namespace osu_replay_renderer_netcore
                 {
                     //MethodInfo internalChildMethod = typeof(CompositeDrawable).GetDeclaredMethod("get_InternalChild");
                     //GridContainer grid = internalChildMethod.Invoke(soloResult, null) as GridContainer;
-                    
+
                     /*PropertyInfo internalChildProperty = typeof(CompositeDrawable).GetProperty("InternalChild", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
             MethodInfo getter = internalChildProperty.GetGetMethod(nonPublic: true);
             return getter.Invoke(drawable, null) as Drawable;*/
@@ -563,12 +569,12 @@ namespace osu_replay_renderer_netcore
                     var statisticsPanel = (scrollContent.Child as Container).Children[1] as StatisticsPanel;
                     var container2 = DrawablesUtils.GetInternalChild(statisticsPanel) as Container;
                     container2.Remove(container2.Children[1], true); // kill the loading spinner
-                    
+
                     Scheduler.AddDelayed(() =>
                     {
                         statisticsPanel.ToggleVisibility();
                     }, 2500);
-                    
+
                     if (Host is ReplayRecordGameHost)
                     {
                         Scheduler.AddDelayed(() =>
@@ -594,7 +600,7 @@ namespace osu_replay_renderer_netcore
                     BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
                 var dc = decoupledTrackField.GetValue(clock) as DecouplingFramedClock;
                 dc.AllowDecoupling = false;
-                
+
                 clock.ChangeSource(wrapped);
             }
         }
