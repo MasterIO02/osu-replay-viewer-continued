@@ -62,6 +62,9 @@ namespace osu_replay_renderer_netcore
 
         public bool HideOverlaysInPlayer = false;
         public bool SkipIntro = false;
+        public bool ScreenshotMode = false;
+
+        public GameHost ActiveHost => Host;
 
         private DependencyContainer dependencies;
         private TestRulesetConfigCache configCache = new TestRulesetConfigCache();
@@ -297,8 +300,38 @@ namespace osu_replay_renderer_netcore
             if (!string.IsNullOrWhiteSpace(BeatmapPath))
             {
                 ImportBeatmapSet(BeatmapPath);
-                if (string.IsNullOrWhiteSpace(ReplayViewType))
+                if (string.IsNullOrWhiteSpace(ReplayViewType) && !ScreenshotMode)
                 {
+                    Exit();
+                    return;
+                }
+            }
+
+            if (ScreenshotMode && string.IsNullOrWhiteSpace(ReplayViewType))
+            {
+                if (!string.IsNullOrWhiteSpace(BeatmapPath))
+                {
+                    var beatmapInfo = BeatmapManager.QueryBeatmap(b => b.BeatmapSet!.Files.Any());
+                    if (beatmapInfo == null)
+                    {
+                        Console.Error.WriteLine("No beatmap found after import");
+                        Exit();
+                        return;
+                    }
+
+                    var ruleset = beatmapInfo.Ruleset.CreateInstance();
+                    var working = BeatmapManager.GetWorkingBeatmap(beatmapInfo);
+                    var beatmap = working.GetPlayableBeatmap(ruleset.RulesetInfo, new[] { ruleset.GetAutoplayMod() });
+                    var screenshotScore = ruleset.GetAutoplayMod().CreateScoreFromReplayData(beatmap, new[] { ruleset.GetAutoplayMod() });
+                    screenshotScore.ScoreInfo.BeatmapInfo = beatmapInfo;
+                    screenshotScore.ScoreInfo.Mods = new[] { ruleset.GetAutoplayMod() };
+                    screenshotScore.ScoreInfo.Ruleset = ruleset.RulesetInfo;
+                    LoadViewer(screenshotScore);
+                    return;
+                }
+                else
+                {
+                    Console.Error.WriteLine("--screenshot requires --view or --import-beatmap <path>");
                     Exit();
                     return;
                 }
@@ -405,7 +438,7 @@ namespace osu_replay_renderer_netcore
             var sw = new Stopwatch();
             // Apply some stuffs
             config.SetValue(FrameworkSetting.ConfineMouseMode, ConfineMouseMode.Never);
-            if (Host is not ReplayRecordGameHost)
+            if (Host is not ReplayRecordGameHost and not ScreenshotGameHost)
             {
                 config.SetValue(FrameworkSetting.FrameSync, FrameSync.VSync);
             }
@@ -499,7 +532,7 @@ namespace osu_replay_renderer_netcore
                 recordHost.SetAudioTrack(track);
             }
 
-            Player = new RecorderReplayPlayer(score, HideOverlaysInPlayer, SkipIntro);
+            Player = new RecorderReplayPlayer(score, HideOverlaysInPlayer, ScreenshotMode ? false : SkipIntro);
 
             Player.OnFailed += () =>
             {
@@ -549,7 +582,7 @@ namespace osu_replay_renderer_netcore
 
         private void ScreenStack_ScreenPushed(IScreen lastScreen, IScreen newScreen)
         {
-            Console.WriteLine("screen push: " + newScreen.GetType());
+            Console.WriteLine($"[ScreenStack] Pushed: {newScreen.GetType().Name} (Host={Host.GetType().Name})");
             ScreenStack.Parallax = 0.0f;
 
             if (newScreen is SoloResultsScreen soloResult)
@@ -585,7 +618,7 @@ namespace osu_replay_renderer_netcore
                     }
                 };
             }
-            if (newScreen is RecorderReplayPlayer player && Host is ReplayRecordGameHost)
+            if (newScreen is RecorderReplayPlayer player && (Host is ReplayRecordGameHost || Host is ScreenshotGameHost))
             {
                 player.ManipulateClock = true;
 
@@ -602,6 +635,9 @@ namespace osu_replay_renderer_netcore
                 dc.AllowDecoupling = false;
 
                 clock.ChangeSource(wrapped);
+
+                if (Host is ScreenshotGameHost screenshotHost)
+                    screenshotHost.NotifyClockSetup(wrapped);
             }
         }
 

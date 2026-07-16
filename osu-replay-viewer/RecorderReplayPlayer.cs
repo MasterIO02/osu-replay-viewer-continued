@@ -144,7 +144,9 @@ namespace osu_replay_renderer_netcore
                     if (mod is IApplicableToRate rateMod) clock.RateMod = rateMod;
                 }
 
-                if (Configuration.AutomaticallySkipIntro)
+                bool isScreenshot = (Game as OsuGameRecorder)?.ActiveHost is CustomHosts.ScreenshotGameHost;
+
+                if (Configuration.AutomaticallySkipIntro && !isScreenshot)
                 {
                     SchedulerAfterChildren.Add(() =>
                     {

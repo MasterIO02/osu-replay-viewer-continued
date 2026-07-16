@@ -45,6 +45,8 @@ namespace osu_replay_renderer_netcore
             OptionDescription extendedImportInfo;
             OptionDescription preserveImportedFiles;
             OptionDescription dataPath;
+            OptionDescription screenshot;
+            OptionDescription screenshotOutput;
 
             CommandLineProcessor cli = new()
             {
@@ -192,6 +194,22 @@ namespace osu_replay_renderer_netcore
                         SingleDash = new[] { "data-path", "dp" },
                         Parameters = new[] { "/path/to/data" }
                     },
+                    screenshot = new()
+                    {
+                        Name = "Screenshot",
+                        Description = "Take a screenshot at the specified beatmap timestamp (in milliseconds)",
+                        DoubleDashes = new[] { "screenshot" },
+                        SingleDash = new[] { "ss" },
+                        Parameters = new[] { "<timestamp_ms>" }
+                    },
+                    screenshotOutput = new()
+                    {
+                        Name = "Screenshot output",
+                        Description = "Output path for the screenshot (default: screenshot.png)",
+                        DoubleDashes = new[] { "screenshot-output" },
+                        SingleDash = new[] { "screenshot-output", "so" },
+                        Parameters = new[] { "path/to/output.png" }
+                    },
                 }
             };
 
@@ -305,8 +323,31 @@ namespace osu_replay_renderer_netcore
 
                     host = new ReplayRecordGameHost(gameName, encoder, recordClock, orvConfig.RecordOptions.Renderer, patched, orvConfig.GameSettings, dataPath.Triggered ? dataPath[0] : null);
                 }
+                else if (screenshot.Triggered)
+                {
+                    var targetMs = double.Parse(screenshot[0]);
+                    var fps = orvConfig.RecordOptions.FrameRate;
+                    var outputPath = screenshotOutput.Triggered ? screenshotOutput[0] : "screenshot.png";
+
+                    var recordClock = new RecordClock(fps);
+                    if (patched)
+                    {
+                        ClockPatcher.OnStopwatchClockSetAsSource += clock =>
+                        {
+                            clock.ChangeSource(new WrappedClock(recordClock, clock.Source as StopwatchClock));
+                        };
+                    }
+
+                    var screenshotHost = new ScreenshotGameHost(gameName, recordClock, patched, dataPath.Triggered ? dataPath[0] : null);
+                    screenshotHost.TargetScreenshotMs = targetMs;
+                    screenshotHost.ScreenshotOutputPath = outputPath;
+                    host = screenshotHost;
+
+                    Console.WriteLine($"Screenshot mode: capturing at {targetMs}ms -> {outputPath}");
+                }
                 else
                 {
+                    // --view mode without record/screenshot
                     if (dataPath.Triggered)
                     {
                         host = new CustomDataPathGameHost(gameName, dataPath[0]);
@@ -322,6 +363,7 @@ namespace osu_replay_renderer_netcore
                 game.ExperimentalFlags = experimentalFlags;
                 game.PreserveImportedFiles = preserveImportedFiles.Triggered;
                 game.ExtendedImportInfo = extendedImportInfo.Triggered;
+                game.ScreenshotMode = screenshot.Triggered;
 
                 if (applySkin.Triggered)
                 {
@@ -346,7 +388,7 @@ namespace osu_replay_renderer_netcore
                 else if (!generalView.Triggered && !beatmapImport.Triggered) throw new CLIException
                 {
                     Cause = "General Problem",
-                    DisplayMessage = "--view must be present (except for --list, --list-skins, and --import-beatmap)",
+                    DisplayMessage = "--view must be present (except for --list, --list-skins, --import-beatmap, and --screenshot)",
                     Suggestions = new[] {
                         "Add --view <Type> <ID/Path> to your command",
                         "Add --list to your command",
@@ -474,7 +516,7 @@ namespace osu_replay_renderer_netcore
         /// <returns></returns>
         private static bool ShouldApplyPatch(string[] args)
         {
-            return CanApplyPatch() && args.Any(arg => arg.Equals("--record") || arg.Equals("-R"));
+            return CanApplyPatch() && args.Any(arg => arg.Equals("--record") || arg.Equals("-R") || arg.Equals("--screenshot") || arg.Equals("-ss"));
         }
 
         private static bool ShouldUseNvidiaGpuEncoder(Config config, EncoderConfig encoderConfig)

@@ -43,7 +43,10 @@ namespace osu_replay_renderer_netcore.CustomHosts.CustomClocks
         {
             TimeOffset = -wrap.CurrentTime;
             original.Start();
+            Started = true;
         }
+
+        public bool Started { get; private set; }
 
         public void Stop()
         {

@@ -22,6 +22,8 @@ namespace osu_replay_renderer_netcore.Patching
     {
         public override string PatcherId() => "osureplayrenderer.Render";
 
+        public static bool BlockSwapBuffers { get; set; } = true;
+
         public override void DoPatching()
         {
             base.DoPatching();
@@ -38,6 +40,9 @@ namespace osu_replay_renderer_netcore.Patching
         public static event Action OnDraw;
         private static void TriggerOnDraw() => OnDraw?.Invoke();
 
+        public static event Action<IRenderer> OnPreSwap;
+        private static void TriggerOnPreSwap(IRenderer renderer) => OnPreSwap?.Invoke(renderer);
+
         [HarmonyPatch(typeof(Renderer))]
         [HarmonyPatch("FinishFrame")]
         class PatchFramedClock
@@ -46,11 +51,16 @@ namespace osu_replay_renderer_netcore.Patching
             {
                 TriggerOnDraw();
             }
+
+            static void Postfix(Renderer __instance)
+            {
+                TriggerOnPreSwap(__instance);
+            }
         }
 
         static bool SwapBuffersPrefix(object __instance)
         {
-            return false;
+            return !BlockSwapBuffers;
         }
     }
 }
