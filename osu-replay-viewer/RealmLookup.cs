@@ -42,15 +42,19 @@ internal static class RealmLookup
     {
         if (args.Length != 3)
         {
-            Console.Error.WriteLine($"Usage: {beatmap_command} <path-to-client.realm> <beatmap-md5>");
+            Console.Error.WriteLine($"Usage: {beatmap_command} <path-to-client.realm> <beatmap-md5|beatmapset-id>");
             return 2;
         }
 
-        string beatmapMd5 = args[2].Trim().ToLowerInvariant();
+        string lookupArg = args[2].Trim();
+        string beatmapMd5 = lookupArg.ToLowerInvariant();
 
-        if (beatmapMd5.Length != 32 || !beatmapMd5.All(Uri.IsHexDigit))
+        bool isMd5 = beatmapMd5.Length == 32 && beatmapMd5.All(Uri.IsHexDigit);
+        bool isBeatmapSetId = int.TryParse(lookupArg, out int beatmapSetId) && beatmapSetId > 0;
+
+        if (!isMd5 && !isBeatmapSetId)
         {
-            Console.Error.WriteLine("Beatmap MD5 must contain exactly 32 hexadecimal characters.");
+            Console.Error.WriteLine("Argument must be either a 32-character hex MD5 hash or a positive integer beatmapset ID.");
             return 2;
         }
 
@@ -63,10 +67,22 @@ internal static class RealmLookup
                 return 0;
             }
 
-            bool found = realm.DynamicApi
-                              .All("Beatmap")
-                              .Filter("MD5Hash ==[c] $0", beatmapMd5)
-                              .Any();
+            bool found;
+
+            if (isMd5)
+            {
+                found = realm.DynamicApi
+                             .All("Beatmap")
+                             .Filter("MD5Hash ==[c] $0", beatmapMd5)
+                             .Any();
+            }
+            else
+            {
+                found = realm.DynamicApi
+                             .All("BeatmapSet")
+                             .Filter("OnlineID == $0", beatmapSetId)
+                             .Any();
+            }
 
             writeBeatmapResult(found);
             return 0;
