@@ -1,4 +1,4 @@
-﻿using osu.Framework;
+using osu.Framework;
 using osu.Framework.Platform;
 using osu_replay_renderer_netcore.CLI;
 using osu_replay_renderer_netcore.CustomHosts;
@@ -109,7 +109,7 @@ namespace osu_replay_renderer_netcore
                         Description = "Select a replay to view. This options must be always present (excluding -list options)",
                         DoubleDashes = new[] { "view" },
                         SingleDash = new[] { "view", "i" },
-                        Parameters = new[] { "Type (local/online/file/auto)", "Score GUID/Beatmap ID (auto)/File.osr" }
+                        Parameters = new[] { "Type (local/online/file/auto/md5)", "Score GUID/Beatmap ID (auto)/File.osr/MD5 hash" }
                     },
                     generalHelp = new()
                     {
@@ -409,12 +409,16 @@ namespace osu_replay_renderer_netcore
                     bool isValidInt32 = id < int.MaxValue;
                     bool isValidGuid = Guid.TryParse(generalView[1], out var guid);
 
+                    string viewArg = generalView[1].Trim().ToLowerInvariant();
+                    bool isValidMd5 = viewArg.Length == 32 && viewArg.All(Uri.IsHexDigit);
+
                     if (
                         (generalView[0].Equals("local") && !isValidGuid) ||
                         ((
                             generalView[0].Equals("auto") ||
                             generalView[0].Equals("online")
-                        ) && !isValidInteger)
+                        ) && !isValidInteger) ||
+                        (generalView[0].Equals("md5") && !isValidMd5)
                     ) throw new CLIException
                     {
                         Cause = "Command-line Arguments (Parsing)",
@@ -440,6 +444,8 @@ namespace osu_replay_renderer_netcore
 
                         case "online": game.ReplayOnlineScoreID = id; break;
 
+                        case "md5": game.ReplayAutoBeatmapMD5 = viewArg; break;
+
                         case "file":
                             if (!File.Exists(path)) throw new CLIException
                             {
@@ -459,7 +465,7 @@ namespace osu_replay_renderer_netcore
                             {
                                 Cause = "Command-line Arguments (Options)",
                                 DisplayMessage = $"Unknown type: {generalView[0]}",
-                                Suggestions = new[] { "Available types: local/online/file/auto" }
+                                Suggestions = new[] { "Available types: local/online/file/auto/md5" }
                             };
                     }
                     game.ReplayViewType = generalView[0];

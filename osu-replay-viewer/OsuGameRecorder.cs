@@ -1,4 +1,4 @@
-﻿using AutoMapper.Internal;
+using AutoMapper.Internal;
 using osu.Framework.Allocation;
 using osu.Framework.Configuration;
 using osu.Framework.Graphics.Containers;
@@ -50,6 +50,7 @@ namespace osu_replay_renderer_netcore
         public long ReplayOnlineScoreID;
         public Guid ReplayOfflineScoreID;
         public int ReplayAutoBeatmapID;
+        public string ReplayAutoBeatmapMD5;
         public string ReplayFileLocation;
 
         public SkinAction SkinActionType { get; set; } = SkinAction.Select;
@@ -385,6 +386,24 @@ namespace osu_replay_renderer_netcore
                     score.ScoreInfo.BeatmapInfo = beatmapInfo;
                     score.ScoreInfo.Mods = new[] { ruleset.GetAutoplayMod() };
                     score.ScoreInfo.Ruleset = ruleset.RulesetInfo;
+                    break;
+                case "md5":
+                    var md5BeatmapInfo = BeatmapManager.QueryBeatmap(v => v.MD5Hash == ReplayAutoBeatmapMD5);
+                    if (md5BeatmapInfo == null)
+                    {
+                        Console.Error.WriteLine("Beatmap not found by MD5: " + ReplayAutoBeatmapMD5);
+                        Console.Error.WriteLine("Please make sure the beatmap is imported in your osu!lazer installation");
+                        Exit();
+                        return;
+                    }
+
+                    var md5Ruleset = md5BeatmapInfo.Ruleset.CreateInstance();
+                    var md5Working = BeatmapManager.GetWorkingBeatmap(md5BeatmapInfo);
+                    var md5Beatmap = md5Working.GetPlayableBeatmap(md5Ruleset.RulesetInfo, new[] { md5Ruleset.GetAutoplayMod() });
+                    score = md5Ruleset.GetAutoplayMod().CreateScoreFromReplayData(md5Beatmap, new[] { md5Ruleset.GetAutoplayMod() });
+                    score.ScoreInfo.BeatmapInfo = md5BeatmapInfo;
+                    score.ScoreInfo.Mods = new[] { md5Ruleset.GetAutoplayMod() };
+                    score.ScoreInfo.Ruleset = md5Ruleset.RulesetInfo;
                     break;
                 case "file":
                     // ReplayFileLocation is already checked at CLI stage
