@@ -25,6 +25,7 @@ namespace osu_replay_renderer_netcore.CustomHosts
         public string? ScreenshotOutputPath { get; set; }
 
         private bool screenshotTaken;
+        private bool screenshotPending;
         private IOpenGLGraphicsSurface openGLSurface;
         private readonly Action<IRenderer> preSwapHandler;
 
@@ -138,6 +139,20 @@ namespace osu_replay_renderer_netcore.CustomHosts
                 return;
             }
 
+            // Previous frame rendered at exact target time, capture it now
+            if (screenshotPending)
+            {
+                screenshotTaken = true;
+                screenshotPending = false;
+                Console.WriteLine($"Screenshot: capturing at gameplay time {TargetScreenshotMs.Value:F0}ms (frame {recordClock.CurrentFrame})");
+
+                captureFramebuffer();
+
+                RenderPatcher.OnPreSwap -= preSwapHandler;
+                Exit();
+                return;
+            }
+
             double gameplayTime = wrappedClock.CurrentTime;
 
             if (gameplayTime % 5000 < 20)
@@ -145,9 +160,13 @@ namespace osu_replay_renderer_netcore.CustomHosts
 
             if (gameplayTime < TargetScreenshotMs.Value) return;
 
-            screenshotTaken = true;
-            Console.WriteLine($"Screenshot: capturing at gameplay time {gameplayTime:F0}ms (frame {recordClock.CurrentFrame})");
+            // Overshot, snap clock to exact target time so the NEXT frame renders at precisely that time
+            wrappedClock.TimeOffset -= gameplayTime - TargetScreenshotMs.Value;
+            screenshotPending = true;
+        }
 
+        private void captureFramebuffer()
+        {
             withGLContext(() =>
             {
                 GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
@@ -179,9 +198,6 @@ namespace osu_replay_renderer_netcore.CustomHosts
                     image.SaveAsPng(fs);
                 Console.WriteLine($"Screenshot saved to {output}");
             });
-
-            RenderPatcher.OnPreSwap -= preSwapHandler;
-            Exit();
         }
     }
 }
