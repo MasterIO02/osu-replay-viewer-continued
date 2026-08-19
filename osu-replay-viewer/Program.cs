@@ -231,6 +231,9 @@ namespace osu_replay_renderer_netcore
                 patched = true;
             }
 
+            // Always seed RNG deterministically for reproducible screenshots
+            new RNGPatcher().DoPatching();
+
             var modsOverride = new List<string>();
             var experimentalFlags = new List<string>();
 
@@ -268,9 +271,12 @@ namespace osu_replay_renderer_netcore
                     var recordClock = new RecordClock(orvConfig.RecordOptions.FrameRate);
                     if (patched)
                     {
+                        WrappedClock sharedWrappedClock = null;
                         ClockPatcher.OnStopwatchClockSetAsSource += clock =>
                         {
-                            clock.ChangeSource(new WrappedClock(recordClock, clock.Source as StopwatchClock));
+                            if (sharedWrappedClock == null)
+                                sharedWrappedClock = new WrappedClock(recordClock, clock.Source as StopwatchClock);
+                            clock.ChangeSource(sharedWrappedClock);
                         };
                     }
 
@@ -338,9 +344,12 @@ namespace osu_replay_renderer_netcore
                     var recordClock = new RecordClock(fps);
                     if (patched)
                     {
+                        WrappedClock sharedWrappedClock = null;
                         ClockPatcher.OnStopwatchClockSetAsSource += clock =>
                         {
-                            clock.ChangeSource(new WrappedClock(recordClock, clock.Source as StopwatchClock));
+                            if (sharedWrappedClock == null)
+                                sharedWrappedClock = new WrappedClock(recordClock, clock.Source as StopwatchClock);
+                            clock.ChangeSource(sharedWrappedClock);
                         };
                     }
 
