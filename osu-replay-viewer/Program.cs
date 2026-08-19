@@ -391,15 +391,16 @@ namespace osu_replay_renderer_netcore
                 {
                     game.SkinActionType = SkinAction.List;
                 }
-                else if (!generalView.Triggered && !beatmapImport.Triggered) throw new CLIException
+                else if (!generalView.Triggered && !beatmapImport.Triggered && !(applySkin.Triggered && game.SkinActionType == SkinAction.Import)) throw new CLIException
                 {
                     Cause = "General Problem",
-                    DisplayMessage = "--view must be present (except for --list, --list-skins, --import-beatmap, and --screenshot)",
+                    DisplayMessage = "--view must be present (except for --list, --list-skins, --import-beatmap, --skin import, and --screenshot)",
                     Suggestions = new[] {
                         "Add --view <Type> <ID/Path> to your command",
                         "Add --list to your command",
                         "Add --list-skins to your command",
-                        "Add --import-beatmap <path> to your command"
+                        "Add --import-beatmap <path> to your command",
+                        "Add --skin import <path> to your command"
                     }
                 };
                 else if (generalView.Triggered)

@@ -278,6 +278,7 @@ namespace osu_replay_renderer_netcore
                 Exit();
                 return;
             }
+
             if (SkinActionType == SkinAction.List)
             {
 
@@ -294,6 +295,14 @@ namespace osu_replay_renderer_netcore
                 }
                 Console.WriteLine("--------------------");
                 Console.WriteLine();
+                Exit();
+                return;
+            }
+
+            if (SkinActionType == SkinAction.Import && !string.IsNullOrEmpty(Skin)
+                && string.IsNullOrWhiteSpace(ReplayViewType))
+            {
+                ImportSkin(Skin);
                 Exit();
                 return;
             }
