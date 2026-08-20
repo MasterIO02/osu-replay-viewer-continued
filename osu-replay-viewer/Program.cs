@@ -234,6 +234,9 @@ namespace osu_replay_renderer_netcore
             // Always seed RNG deterministically for reproducible screenshots
             new RNGPatcher().DoPatching();
 
+            // Always remove scrolling "Watching ..." text from replay overlay
+            new ReplayOverlayPatcher().DoPatching();
+
             var modsOverride = new List<string>();
             var experimentalFlags = new List<string>();
 
