@@ -6,6 +6,7 @@ using osu.Framework.Platform;
 using osu.Framework.Timing;
 using osu_replay_renderer_netcore.CustomHosts.CustomClocks;
 using osu_replay_renderer_netcore.Patching;
+using osu_replay_renderer_netcore.Record;
 using osuTK.Graphics.ES30;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -13,6 +14,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using Size = System.Drawing.Size;
 
 namespace osu_replay_renderer_netcore.CustomHosts
 {
@@ -23,6 +25,17 @@ namespace osu_replay_renderer_netcore.CustomHosts
 
         public double? TargetScreenshotMs { get; set; }
         public string? ScreenshotOutputPath { get; set; }
+
+        private Size resolution;
+        public Size Resolution
+        {
+            get => resolution;
+            set
+            {
+                resolution = value;
+                OffscreenRender.Activate(value);
+            }
+        }
 
         private bool screenshotTaken;
         private bool screenshotPending;
@@ -82,6 +95,12 @@ namespace osu_replay_renderer_netcore.CustomHosts
             base.SetupForRun();
             MaximumDrawHz = 0;
             MaximumUpdateHz = MaximumInactiveHz = 0;
+        }
+
+        protected override void DrawFrame()
+        {
+            OffscreenRender.EnsureFramebuffer(Renderer);
+            base.DrawFrame();
         }
 
         public void NotifyClockSetup(WrappedClock clock)
@@ -169,13 +188,11 @@ namespace osu_replay_renderer_netcore.CustomHosts
         {
             withGLContext(() =>
             {
-                GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+                GL.BindFramebuffer(FramebufferTarget.Framebuffer, OffscreenRender.Framebuffer);
                 GL.Finish();
 
-                int[] viewport = new int[4];
-                GL.GetInteger(GetPName.Viewport, viewport);
-                int width = viewport[2];
-                int height = viewport[3];
+                int width = Resolution.Width;
+                int height = Resolution.Height;
 
                 GL.PixelStore(PixelStoreParameter.PackAlignment, 1);
                 var pixels = new byte[width * height * 3];

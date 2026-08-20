@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Drawing;
 using System.Reflection;
 using osu_replay_renderer_netcore.CustomHosts.Record;
@@ -201,7 +201,8 @@ public class GLRendererWrapper : RenderWrapper
 
     public override void WriteFrame(EncoderBase encoder)
     {
-        var size = surface.GetDrawableSize();
+        // When rendering offscreen the window drawable stays small, but the bound framebuffer is the offscreen target at the desired size
+        var size = OffscreenRender.Active ? DesiredSize : surface.GetDrawableSize();
         if (size.Width != DesiredSize.Width || size.Height != DesiredSize.Height) return;
 
         WithGLContext(() =>
@@ -241,7 +242,7 @@ public class GLRendererWrapper : RenderWrapper
         GL.BindTexture(TextureTarget.Texture2D, sourceTexture);
 
         // Ensure no error before we start
-        while (GL.GetError() != ErrorCode.NoError) {}
+        while (GL.GetError() != ErrorCode.NoError) { }
 
         GL.CopyTexSubImage2D((All)TextureTarget.Texture2D, 0, 0, 0, 0, 0, DesiredSize.Width, DesiredSize.Height);
 
@@ -253,7 +254,7 @@ public class GLRendererWrapper : RenderWrapper
 
         if (GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer) != FramebufferErrorCode.FramebufferComplete)
         {
-             Console.WriteLine($"Framebuffer incomplete: {GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer)}");
+            Console.WriteLine($"Framebuffer incomplete: {GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer)}");
         }
 
         GL.Viewport(0, 0, DesiredSize.Width, fboHeight);

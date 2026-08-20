@@ -283,12 +283,7 @@ namespace osu_replay_renderer_netcore
                         };
                     }
 
-                    var resolutionArr = orvConfig.RecordOptions.Resolution.ToLower().Split('x').Select(x => int.Parse(x.Trim())).ToArray();
-                    var resolution = new Size
-                    {
-                        Width = resolutionArr[0],
-                        Height = resolutionArr[1]
-                    };
+                    var resolution = ParseResolution(orvConfig.RecordOptions.Resolution);
 
                     var config = new EncoderConfig
                     {
@@ -359,6 +354,7 @@ namespace osu_replay_renderer_netcore
                     var screenshotHost = new ScreenshotGameHost(gameName, recordClock, patched, dataPath.Triggered ? dataPath[0] : null);
                     screenshotHost.TargetScreenshotMs = targetMs;
                     screenshotHost.ScreenshotOutputPath = outputPath;
+                    screenshotHost.Resolution = ParseResolution(orvConfig.RecordOptions.Resolution);
                     host = screenshotHost;
 
                     Console.WriteLine($"Screenshot mode: capturing at {targetMs}ms -> {outputPath}");
@@ -524,6 +520,16 @@ namespace osu_replay_renderer_netcore
                     DisplayMessage = $"Invaild boolean: {str}",
                     Suggestions = new[] { "Allowed values: true/yes/1 or false/no/0" }
                 }
+            };
+        }
+
+        private static Size ParseResolution(string resolution)
+        {
+            var parts = resolution.ToLower().Split('x').Select(x => int.Parse(x.Trim())).ToArray();
+            return new Size
+            {
+                Width = parts[0],
+                Height = parts[1]
             };
         }
 
