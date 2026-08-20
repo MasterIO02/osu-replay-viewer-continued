@@ -1,4 +1,4 @@
-﻿using ManagedBass;
+using ManagedBass;
 using osu.Framework.Audio.Mixing;
 using osu.Framework.Audio.Sample;
 using System;
@@ -34,10 +34,9 @@ namespace osu_replay_renderer_netcore.Audio
             if (info.Channels < 1 || info.Length <= 0)
                 return null;
 
-            // BASS exposes either OriginalResolution or flags describing the stored sample depth.
-            var pcmBits = info.OriginalResolution > 0
-                ? info.OriginalResolution
-                : info.Flags.HasFlag(BassFlags.Float) ? 32
+            // BASS normalizes sample data on load: 32-bit float with the Float flag, otherwise 8/16-bit integer.
+            // OriginalResolution only describes the source file, not the stored data (eg. a 24-bit file is stored as 16-bit), so the flags take precedence.
+            var pcmBits = info.Flags.HasFlag(BassFlags.Float) ? 32
                 : info.Flags.HasFlag(BassFlags.Byte) ? 8
                 : 16;
 
@@ -65,7 +64,6 @@ namespace osu_replay_renderer_netcore.Audio
                 {
                     1 => (bytes[offset] - 128) / 128f, // 8-bit PCM is unsigned
                     2 => BitConverter.ToInt16(bytes, offset) / (float)short.MaxValue,
-                    3 => Read24Bit(bytes, offset),
                     4 => isFloat
                         ? BitConverter.ToSingle(bytes, offset)
                         : BitConverter.ToInt32(bytes, offset) / (float)int.MaxValue,
@@ -74,21 +72,6 @@ namespace osu_replay_renderer_netcore.Audio
             }
 
             return buff;
-
-            static float Read24Bit(byte[] buffer, int offset)
-            {
-                const float pcm24MaxValue = 0x7FFFFF; // (1 << 23) - 1
-
-                var sample = buffer[offset]
-                            | (buffer[offset + 1] << 8)
-                            | (buffer[offset + 2] << 16);
-
-                // Sign-extend the 24-bit value to 32-bit int
-                if ((sample & 0x800000) != 0)
-                    sample |= unchecked((int)0xFF000000);
-
-                return sample / pcm24MaxValue;
-            }
         }
     }
 }
