@@ -1,4 +1,4 @@
-﻿using AutoMapper.Internal;
+using AutoMapper.Internal;
 using osu.Framework.Extensions.IEnumerableExtensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
@@ -35,6 +35,18 @@ namespace osu_replay_renderer_netcore
             PropertyInfo internalChildrenProperty = typeof(CompositeDrawable).GetProperty("InternalChildren", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
             MethodInfo getter = internalChildrenProperty.GetGetMethod(nonPublic: true);
             return getter.Invoke(drawable, null) as IReadOnlyList<Drawable>;
+        }
+
+        public static Drawable? FindDescendant(this CompositeDrawable root, Func<Drawable, bool> predicate)
+        {
+            foreach (var child in GetInternalChildren(root))
+            {
+                if (predicate(child))
+                    return child;
+                if (child is CompositeDrawable composite && FindDescendant(composite, predicate) is { } found)
+                    return found;
+            }
+            return null;
         }
     }
 }

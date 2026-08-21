@@ -638,11 +638,19 @@ namespace osu_replay_renderer_netcore
 
                     if (Host is ReplayRecordGameHost)
                     {
+                        // Slow glide to the bottom of the statistics panel. Decay 0.0007/ms ≈ 95% of the distance after ~4.3s.
+                        // The stats live in a nested OsuScrollContainer, the outer VerticalScrollContent has no scrollable extent.
+                        Scheduler.AddDelayed(() =>
+                        {
+                            if (statisticsPanel.FindDescendant(d => d is OsuScrollContainer) is OsuScrollContainer statsScroll)
+                                statsScroll.ScrollTo(statsScroll.ScrollableExtent, true, 0.0007);
+                        }, 4000);
+
                         Scheduler.AddDelayed(() =>
                         {
                             (Host as ReplayRecordGameHost)?.FinishRecording();
                             Exit();
-                        }, 11000);
+                        }, 13000);
                     }
                 };
             }
