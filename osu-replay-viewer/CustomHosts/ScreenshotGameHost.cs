@@ -82,12 +82,9 @@ namespace osu_replay_renderer_netcore.CustomHosts
 
         protected override void ChooseAndSetupRenderer()
         {
-            var type = RuntimeInfo.OS switch
-            {
-                RuntimeInfo.Platform.Windows => "veldrid",
-                _ => "gl"
-            };
-            SetupRendererAndWindow(type, GraphicsSurfaceType.OpenGL);
+            // The whole screenshot pipeline (offscreen framebuffer, GL readback) is written for the OpenGL renderer, and the veldrid alternatives don't work here:
+            // over an OpenGL surface its dedicated GL execution thread drains at ~30ms/frame (seeking becomes slower than realtime), and over Direct3D11 the device deadlocks because RenderPatcher blocks SwapBuffers, so DXGI never presents and the swapchain never frees a backbuffer.
+            SetupRendererAndWindow("gl", GraphicsSurfaceType.OpenGL);
         }
 
         protected override void SetupForRun()
