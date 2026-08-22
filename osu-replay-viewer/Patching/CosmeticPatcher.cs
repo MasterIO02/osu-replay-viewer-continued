@@ -1,4 +1,6 @@
+using System;
 using HarmonyLib;
+using osu.Framework.Graphics;
 using osu.Game.Screens.Play;
 using osu.Game.Screens.Play.HUD;
 
@@ -19,7 +21,13 @@ public class CosmeticPatcher : PatcherBase
         // "Loading paused..." flash in the beatmap metadata display during intro
         var setUserBlocked = AccessTools.PropertySetter(typeof(BeatmapMetadataDisplay), nameof(BeatmapMetadataDisplay.UserBlocked));
         Harmony.Patch(setUserBlocked, prefix: new HarmonyMethod(AccessTools.Method(typeof(CosmeticPatcher), nameof(SkipOriginal))));
+
+        // Gear button opening the replay settings overlay during gameplay
+        var replaySettingsCtor = AccessTools.Constructor(typeof(ReplaySettingsOverlay));
+        Harmony.Patch(replaySettingsCtor, postfix: new HarmonyMethod(AccessTools.Method(typeof(CosmeticPatcher), nameof(HideDrawable))));
     }
 
     private static bool SkipOriginal() => false;
+
+    private static void HideDrawable(Drawable __instance) => __instance.Alpha = 0;
 }
