@@ -531,12 +531,13 @@ namespace osu_replay_renderer_netcore
                 }
 
                 SelectSkin(skin);
-                LocalConfig.GetBindable<bool>(OsuSetting.BeatmapColours).Value = settings.BeatmapColors;
-                LocalConfig.GetBindable<bool>(OsuSetting.BeatmapSkins).Value = settings.BeatmapSkin;
-                LocalConfig.GetBindable<bool>(OsuSetting.BeatmapHitsounds).Value = settings.BeatmapHitsounds;
-                LocalConfig.GetBindable<bool>(OsuSetting.ShowStoryboard).Value = settings.ShowStoryboard;
-                LocalConfig.GetBindable<double>(OsuSetting.DimLevel).Value = settings.BackgroundDim;
             }
+
+            LocalConfig.GetBindable<bool>(OsuSetting.BeatmapColours).Value = settings.BeatmapColors;
+            LocalConfig.GetBindable<bool>(OsuSetting.BeatmapSkins).Value = settings.BeatmapSkin;
+            LocalConfig.GetBindable<bool>(OsuSetting.BeatmapHitsounds).Value = settings.BeatmapHitsounds;
+            LocalConfig.GetBindable<bool>(OsuSetting.ShowStoryboard).Value = settings.ShowStoryboard;
+            LocalConfig.GetBindable<double>(OsuSetting.DimLevel).Value = settings.BackgroundDim;
 
             if (Host is ReplayRecordGameHost recordHost && recordHost.NeedAudio)
             {
