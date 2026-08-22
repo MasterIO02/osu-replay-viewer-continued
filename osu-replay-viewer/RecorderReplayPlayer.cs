@@ -1,4 +1,4 @@
-﻿using osu.Framework.Bindables;
+using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Testing;
 using osu.Framework.Screens;
@@ -26,18 +26,19 @@ namespace osu_replay_renderer_netcore
         public bool ManipulateClock { get; set; } = false;
         public bool HideOverlays { get; private set; } = false;
 
-        public RecorderReplayPlayer(Score score, bool hideOverlays, bool skipIntro) : base(score, new PlayerConfiguration
+        public RecorderReplayPlayer(Score score, bool hideOverlays, bool skipIntro, bool showLeaderboard = false) : base(score, new PlayerConfiguration
         {
             AllowRestart = false,
             AllowPause = false,
             AllowUserInteraction = !hideOverlays,
-            ShowLeaderboard = false,
             AllowSkipping = !hideOverlays,
             AutomaticallySkipIntro = skipIntro
         })
         {
             GivenScore = score;
             HideOverlays = hideOverlays;
+            // ReplayPlayer's constructor forces ShowLeaderboard on after our configuration is stored
+            Configuration.ShowLeaderboard = showLeaderboard;
         }
 
         public Action OnFailed;

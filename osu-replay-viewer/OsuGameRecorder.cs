@@ -561,7 +561,7 @@ namespace osu_replay_renderer_netcore
                 recordHost.SetAudioTrack(track);
             }
 
-            Player = new RecorderReplayPlayer(score, HideOverlaysInPlayer, ScreenshotMode ? false : SkipIntro);
+            Player = new RecorderReplayPlayer(score, HideOverlaysInPlayer, ScreenshotMode ? false : SkipIntro, settings.ShowScoreboard);
 
             Player.OnFailed += () =>
             {
