@@ -1,5 +1,6 @@
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
+using osu.Framework.Graphics.Containers;
 using osu.Framework.Testing;
 using osu.Framework.Screens;
 using osu.Game.Beatmaps;
@@ -11,6 +12,7 @@ using osu.Game.Rulesets.Objects.Drawables;
 using osu.Game.Scoring;
 using osu.Game.Screens.Play;
 using osu.Game.Screens.Play.HUD;
+using osuTK;
 using osu_replay_renderer_netcore.HUD.Builtin;
 using System;
 using System.Collections.Generic;
@@ -25,8 +27,9 @@ namespace osu_replay_renderer_netcore
         public Score GivenScore { get; private set; }
         public bool ManipulateClock { get; set; } = false;
         public bool HideOverlays { get; private set; } = false;
+        public bool ShowMods { get; }
 
-        public RecorderReplayPlayer(Score score, bool hideOverlays, bool skipIntro, bool showLeaderboard = false) : base(score, new PlayerConfiguration
+        public RecorderReplayPlayer(Score score, bool hideOverlays, bool skipIntro, bool showLeaderboard = false, bool showMods = true) : base(score, new PlayerConfiguration
         {
             AllowRestart = false,
             AllowPause = false,
@@ -37,6 +40,7 @@ namespace osu_replay_renderer_netcore
         {
             GivenScore = score;
             HideOverlays = hideOverlays;
+            ShowMods = showMods;
             // ReplayPlayer's constructor forces ShowLeaderboard on after our configuration is stored
             Configuration.ShowLeaderboard = showLeaderboard;
         }
@@ -56,10 +60,10 @@ namespace osu_replay_renderer_netcore
             ValidForResume = false;
             base.OnSuspending(e);
         }
-        
+
         protected override bool CheckModsAllowFailure()
         {
-            return GameplayState.Mods.OfType<IApplicableFailOverride>().All((Func<IApplicableFailOverride, bool>) (m => m.PerformFail()));
+            return GameplayState.Mods.OfType<IApplicableFailOverride>().All((Func<IApplicableFailOverride, bool>)(m => m.PerformFail()));
         }
 
         protected override void LoadComplete()
@@ -72,6 +76,15 @@ namespace osu_replay_renderer_netcore
             {
                 ReplayOverlay.Hide();
                 GameplayClockContainer.RemoveRecursive(v => v is SkipOverlay);
+            }
+
+            // Both the HUD's own display and skin-provided copies need handling: the HUD's own gets re-faded in when the replay loads, so it must be removed entirely
+            if (!ShowMods)
+            {
+                HUDOverlay.TopRightElements.Remove(HUDOverlay.ModDisplay, true);
+
+                foreach (var modDisplay in HUDOverlay.FindDescendants(d => d is ModDisplay))
+                    modDisplay.Hide();
             }
 
             var game = Game as OsuGameRecorder;
@@ -137,7 +150,7 @@ namespace osu_replay_renderer_netcore
                 GameplayClockContainer.Start();
                 FieldInfo gameplayClockField = typeof(GameplayClockContainer)
                     .GetField("GameplayClock", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-                
+
                 var ogClock = gameplayClockField.GetValue(GameplayClockContainer) as FramedBeatmapClock;
                 var clock = ogClock.Source as WrappedClock;
                 foreach (Mod mod in GivenScore.ScoreInfo.Mods)
@@ -154,7 +167,8 @@ namespace osu_replay_renderer_netcore
                         (GameplayClockContainer as MasterGameplayClockContainer)?.Skip();
                     });
                 }
-            } else base.StartGameplay();
+            }
+            else base.StartGameplay();
         }
     }
 }

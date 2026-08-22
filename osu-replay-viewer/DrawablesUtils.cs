@@ -37,16 +37,19 @@ namespace osu_replay_renderer_netcore
             return getter.Invoke(drawable, null) as IReadOnlyList<Drawable>;
         }
 
-        public static Drawable? FindDescendant(this CompositeDrawable root, Func<Drawable, bool> predicate)
+        public static Drawable? FindDescendant(this CompositeDrawable root, Func<Drawable, bool> predicate) =>
+            FindDescendants(root, predicate).FirstOrDefault();
+
+        public static IEnumerable<Drawable> FindDescendants(this CompositeDrawable root, Func<Drawable, bool> predicate)
         {
             foreach (var child in GetInternalChildren(root))
             {
                 if (predicate(child))
-                    return child;
-                if (child is CompositeDrawable composite && FindDescendant(composite, predicate) is { } found)
-                    return found;
+                    yield return child;
+                if (child is CompositeDrawable composite)
+                    foreach (var found in FindDescendants(composite, predicate))
+                        yield return found;
             }
-            return null;
         }
     }
 }
