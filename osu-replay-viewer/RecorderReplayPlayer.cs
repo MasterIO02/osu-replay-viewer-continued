@@ -28,8 +28,9 @@ namespace osu_replay_renderer_netcore
         public bool ManipulateClock { get; set; } = false;
         public bool HideOverlays { get; private set; } = false;
         public bool ShowMods { get; }
+        public bool ShowCursor { get; }
 
-        public RecorderReplayPlayer(Score score, bool hideOverlays, bool skipIntro, bool showLeaderboard = false, bool showMods = true) : base(score, new PlayerConfiguration
+        public RecorderReplayPlayer(Score score, bool hideOverlays, bool skipIntro, bool showLeaderboard = false, bool showMods = true, bool showCursor = true) : base(score, new PlayerConfiguration
         {
             AllowRestart = false,
             AllowPause = false,
@@ -41,6 +42,7 @@ namespace osu_replay_renderer_netcore
             GivenScore = score;
             HideOverlays = hideOverlays;
             ShowMods = showMods;
+            ShowCursor = showCursor;
             // ReplayPlayer's constructor forces ShowLeaderboard on after our configuration is stored
             Configuration.ShowLeaderboard = showLeaderboard;
         }
@@ -86,6 +88,9 @@ namespace osu_replay_renderer_netcore
                 foreach (var modDisplay in HUDOverlay.FindDescendants(d => d is ModDisplay))
                     modDisplay.Hide();
             }
+
+            if (!ShowCursor)
+                DrawableRuleset.Cursor?.Hide();
 
             var game = Game as OsuGameRecorder;
 
