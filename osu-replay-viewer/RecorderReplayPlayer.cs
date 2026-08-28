@@ -90,7 +90,10 @@ namespace osu_replay_renderer_netcore
             }
 
             if (!ShowCursor)
+            {
                 DrawableRuleset.Cursor?.Hide();
+                DrawableRuleset.Cursor?.FadeOut(0);
+            }
 
             var game = Game as OsuGameRecorder;
 
